@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Price Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .search-box {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 15px;
+            font-size: 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            padding: 15px 30px;
+            font-size: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .examples {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .examples span {
+            color: #667eea;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        .examples span:hover {
+            color: #764ba2;
+        }
+
+        #loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: white;
+            font-size: 18px;
+        }
+
+        #error {
+            display: none;
+            background: #ff4444;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        #results {
+            display: none;
+        }
+
+        .company-header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            margin-bottom: 30px;
+        }
+
+        .company-name {
+            font-size: 1.8em;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .stock-symbol {
+            font-size: 1.2em;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        th {
+            background: #f5f5f5;
+            font-weight: 600;
+            color: #333;
+        }
+
+        tr:hover {
+            background: #f9f9f9;
+        }
+
+        .positive {
+            color: #00c853;
+        }
+
+        .negative {
+            color: #ff4444;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+        }
+
+        .download-section {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .download-btn {
+            background: #00c853;
+            padding: 12px 24px;
+            font-size: 16px;
+        }
+
+        .download-btn:hover {
+            background: #00a043;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📈 Stock Price Tracker</h1>
+
+        <div class="search-box">
+            <div class="input-group">
+                <input type="text" id="stockSymbol" placeholder="Enter stock symbol (e.g., AAPL, GOOGL, TSLA)" />
+                <button id="searchBtn" onclick="searchStock()">Get Stock Data</button>
+            </div>
+            <div class="examples">
+                Examples:
+                <span onclick="fillSymbol('AAPL')">AAPL</span>,
+                <span onclick="fillSymbol('GOOGL')">GOOGL</span>,
+                <span onclick="fillSymbol('MSFT')">MSFT</span>,
+                <span onclick="fillSymbol('TSLA')">TSLA</span>,
+                <span onclick="fillSymbol('AMZN')">AMZN</span>
+            </div>
+        </div>
+
+        <div id="loading">Loading stock data...</div>
+        <div id="error"></div>
+
+        <div id="results">
+            <div class="company-header">
+                <div class="company-name" id="companyName"></div>
+                <div class="stock-symbol" id="displaySymbol"></div>
+            </div>
+
+            <div class="content-grid">
+                <div class="card">
+                    <h2>Key Financial Data</h2>
+                    <table id="financialTable">
+                        <tbody></tbody>
+                    </table>
+                    <div class="download-section">
+                        <button class="download-btn" id="downloadBtn" onclick="downloadCSV()">
+                            📥 Download CSV
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Price Statistics</h2>
+                    <table id="statsTable">
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+                <div class="card full-width">
+                    <h2>Stock Price History (6 Months)</h2>
+                    <div class="chart-container">
+                        <canvas id="priceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentSymbol = '';
+        let priceChart = null;
+
+        // Allow Enter key to search
+        document.getElementById('stockSymbol').addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                searchStock();
+            }
+        });
+
+        function fillSymbol(symbol) {
+            document.getElementById('stockSymbol').value = symbol;
+            searchStock();
+        }
+
+        function formatNumber(num) {
+            if (num === 'N/A' || num === null || num === undefined) return 'N/A';
+            if (typeof num === 'number') {
+                if (num >= 1e12) return (num / 1e12).toFixed(2) + 'T';
+                if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
+                if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
+                return num.toLocaleString();
+            }
+            return num;
+        }
+
+        function searchStock() {
+            const symbol = document.getElementById('stockSymbol').value.trim().toUpperCase();
+
+            if (!symbol) {
+                showError('Please enter a stock symbol');
+                return;
+            }
+
+            currentSymbol = symbol;
+
+            // Show loading, hide error and results
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('searchBtn').disabled = true;
+
+            fetch(`/api/stock/${symbol}`)
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(data => {
+                            throw new Error(data.error || 'Failed to fetch stock data');
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    displayStockData(data);
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('results').style.display = 'block';
+                    document.getElementById('searchBtn').disabled = false;
+                })
+                .catch(error => {
+                    showError(error.message);
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('searchBtn').disabled = false;
+                });
+        }
+
+        function displayStockData(data) {
+            const { financial_data, chart_data } = data;
+
+            // Display company header
+            document.getElementById('companyName').textContent = financial_data.company_name;
+            document.getElementById('displaySymbol').textContent = financial_data.symbol;
+
+            // Display financial data table
+            const financialTableBody = document.getElementById('financialTable').querySelector('tbody');
+            const priceChange = financial_data.current_price - financial_data.previous_close;
+            const priceChangePercent = ((priceChange / financial_data.previous_close) * 100).toFixed(2);
+            const changeClass = priceChange >= 0 ? 'positive' : 'negative';
+
+            financialTableBody.innerHTML = `
+                <tr>
+                    <th>Current Price</th>
+                    <td><strong>$${financial_data.current_price}</strong></td>
+                </tr>
+                <tr>
+                    <th>Change</th>
+                    <td class="${changeClass}">
+                        ${priceChange >= 0 ? '+' : ''}$${priceChange.toFixed(2)}
+                        (${priceChange >= 0 ? '+' : ''}${priceChangePercent}%)
+                    </td>
+                </tr>
+                <tr>
+                    <th>Previous Close</th>
+                    <td>$${financial_data.previous_close}</td>
+                </tr>
+                <tr>
+                    <th>Open</th>
+                    <td>$${financial_data.open}</td>
+                </tr>
+                <tr>
+                    <th>Volume</th>
+                    <td>${formatNumber(financial_data.volume)}</td>
+                </tr>
+            `;
+
+            // Display statistics table
+            const statsTableBody = document.getElementById('statsTable').querySelector('tbody');
+            statsTableBody.innerHTML = `
+                <tr>
+                    <th>Day High</th>
+                    <td>$${financial_data.day_high}</td>
+                </tr>
+                <tr>
+                    <th>Day Low</th>
+                    <td>$${financial_data.day_low}</td>
+                </tr>
+                <tr>
+                    <th>52 Week High</th>
+                    <td>$${financial_data.fifty_two_week_high}</td>
+                </tr>
+                <tr>
+                    <th>52 Week Low</th>
+                    <td>$${financial_data.fifty_two_week_low}</td>
+                </tr>
+                <tr>
+                    <th>Market Cap</th>
+                    <td>${formatNumber(financial_data.market_cap)}</td>
+                </tr>
+                <tr>
+                    <th>P/E Ratio</th>
+                    <td>${financial_data.pe_ratio}</td>
+                </tr>
+                <tr>
+                    <th>EPS</th>
+                    <td>${financial_data.eps}</td>
+                </tr>
+                <tr>
+                    <th>Dividend Yield</th>
+                    <td>${financial_data.dividend_yield !== 'N/A' ? financial_data.dividend_yield + '%' : 'N/A'}</td>
+                </tr>
+                <tr>
+                    <th>Beta</th>
+                    <td>${financial_data.beta}</td>
+                </tr>
+            `;
+
+            // Create price chart
+            createPriceChart(chart_data, financial_data.symbol);
+        }
+
+        function createPriceChart(chartData, symbol) {
+            const ctx = document.getElementById('priceChart').getContext('2d');
+
+            // Destroy existing chart if it exists
+            if (priceChart) {
+                priceChart.destroy();
+            }
+
+            priceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: chartData.dates,
+                    datasets: [{
+                        label: `${symbol} Stock Price`,
+                        data: chartData.prices,
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 2,
+                        pointHoverRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return `Price: $${context.parsed.y.toFixed(2)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Date'
+                            },
+                            ticks: {
+                                maxTicksLimit: 10
+                            }
+                        },
+                        y: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Price (USD)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toFixed(2);
+                                }
+                            }
+                        }
+                    },
+                    interaction: {
+                        mode: 'nearest',
+                        axis: 'x',
+                        intersect: false
+                    }
+                }
+            });
+        }
+
+        function downloadCSV() {
+            if (!currentSymbol) return;
+
+            window.location.href = `/api/download/${currentSymbol}`;
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
