@@ -1,0 +1,22 @@
+# LangGraph Memory Agent Requirements
+
+# LangGraph and LangChain
+langgraph>=0.0.20
+langchain>=0.1.0
+langchain-openai>=0.0.5
+langchain-core>=0.1.0
+
+# Supabase
+supabase>=2.0.0
+
+# OpenAI
+openai>=1.0.0
+
+# HTTP client for webhooks
+httpx>=0.24.0
+
+# Environment variables
+python-dotenv>=1.0.0
+
+# Optional: For advanced features
+pydantic>=2.0.0
